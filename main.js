@@ -3,7 +3,7 @@ const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const { exec } = require('child_process');
 const fs = require('fs');
-const drivelist = require('drivelist');
+const diskinfo = require('node-disk-info');
 const sudo = require('sudo-prompt');
 
 function createWindow() {
@@ -120,8 +120,19 @@ ipcMain.handle('repair-video', async (event, { brokenPath, referencePath }) => {
 });
 
 ipcMain.handle('list-drives', async () => {
-    const drives = await drivelist.list();
-    return drives;
+    try {
+        const disks = diskinfo.getDiskInfoSync();
+        return disks.map(disk => ({
+            device: disk.mounted,
+            description: `${disk.filesystem} (${disk.mounted})`,
+            model: disk.filesystem,
+            size: disk.blocks * 512, // Approximation if blocks not available
+            isSystem: disk.mounted === '/' || disk.mounted === 'C:'
+        }));
+    } catch (e) {
+        console.error('Disk info error:', e);
+        return [];
+    }
 });
 
 ipcMain.handle('create-disk-image', async (event, { drivePath, outputPath }) => {
