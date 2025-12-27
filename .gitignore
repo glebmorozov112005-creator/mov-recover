@@ -1,0 +1,10 @@
+node_modules/
+dist/
+release/
+uploads/
+.DS_Store
+*.env
+bin/win/ffmpeg.exe
+ffmpeg.zip
+*.blockmap
+builder-effective-config.yaml

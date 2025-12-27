@@ -1,0 +1,80 @@
+{
+  "name": "mov-recover",
+  "version": "1.0.0",
+  "description": "Professional MOV Recovery Tool",
+  "main": "main.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/glebmorozov/mov-recover"
+  },
+  "author": "Antigravity",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "electron": "electron .",
+    "start": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
+    "pack": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder",
+    "dist:win": "npm run build && electron-builder --win --x64 && cp \"release/MOV Recover.exe\" ~/Desktop/ && cp \"release/MOV Recover Setup.exe\" ~/Desktop/"
+  },
+  "dependencies": {
+    "axios": "^1.13.2",
+    "cors": "^2.8.5",
+    "electron-updater": "^6.6.2",
+    "express": "^4.21.2",
+    "ffmpeg-static": "^5.3.0",
+    "fluent-ffmpeg": "^2.1.3",
+    "framer-motion": "^11.18.2",
+    "lucide-react": "^0.469.0",
+    "multer": "^1.4.5-lts.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.2.1",
+    "electron": "^33.2.1",
+    "electron-builder": "^24.13.3",
+    "vite": "^6.0.5",
+    "wait-on": "^8.0.5"
+  },
+  "build": {
+    "appId": "com.antigravity.movrecover",
+    "productName": "MOV Recover",
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "glebmorozov",
+      "repo": "mov-recover"
+    },
+    "nsis": {
+      "artifactName": "${productName} Setup.${ext}"
+    },
+    "portable": {
+      "artifactName": "${productName}.${ext}"
+    },
+    "files": [
+      "dist/**/*",
+      "main.js",
+      "preload.js",
+      "bin/**/*",
+      "node_modules/ffmpeg-static/**/*"
+    ],
+    "asarUnpack": [
+      "bin/**/*",
+      "node_modules/ffmpeg-static/**/*"
+    ],
+    "directories": {
+      "output": "release"
+    }
+  }
+}
