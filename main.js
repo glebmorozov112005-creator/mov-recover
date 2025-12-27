@@ -3,6 +3,8 @@ const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const { exec } = require('child_process');
 const fs = require('fs');
+const drivelist = require('drivelist');
+const sudo = require('sudo-prompt');
 
 function createWindow() {
     const win = new BrowserWindow({
@@ -65,9 +67,7 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') {
-        app.quit();
-    }
+    app.quit();
 });
 
 const isDev = !app.isPackaged;
@@ -117,6 +117,81 @@ ipcMain.handle('repair-video', async (event, { brokenPath, referencePath }) => {
             }
         });
     });
+});
+
+ipcMain.handle('list-drives', async () => {
+    const drives = await drivelist.list();
+    return drives;
+});
+
+ipcMain.handle('create-disk-image', async (event, { drivePath, outputPath }) => {
+    return new Promise((resolve, reject) => {
+        // Raw disk access often requires elevation/sudo
+        // On Windows, we need to use \\.\PhysicalDriveX
+        // On Mac, we need to use /dev/rdiskX
+
+        const isWindows = process.platform === 'win32';
+        const bufferSize = 4 * 1024 * 1024; // 4MB buffer
+        const buffer = Buffer.alloc(bufferSize);
+
+        let fdIn, fdOut;
+        let totalSize = 0;
+        let bytesReadTotal = 0;
+
+        try {
+            // Get drive size first
+            const stats = fs.statSync(drivePath);
+            totalSize = stats.size;
+        } catch (e) {
+            // stat might fail for raw devices, we'll try to read until EOF
+        }
+
+        const readWriteLoop = () => {
+            fs.read(fdIn, buffer, 0, bufferSize, null, (err, bytesRead) => {
+                if (err) {
+                    fs.closeSync(fdIn);
+                    fs.closeSync(fdOut);
+                    reject(`Read Error: ${err.message}`);
+                    return;
+                }
+
+                if (bytesRead === 0) {
+                    fs.closeSync(fdIn);
+                    fs.closeSync(fdOut);
+                    resolve({ success: true, outputPath });
+                    return;
+                }
+
+                fs.write(fdOut, buffer, 0, bytesRead, null, (err) => {
+                    if (err) {
+                        fs.closeSync(fdIn);
+                        fs.closeSync(fdOut);
+                        reject(`Write Error: ${err.message}`);
+                        return;
+                    }
+
+                    bytesReadTotal += bytesRead;
+                    const progress = totalSize ? (bytesReadTotal / totalSize * 100).toFixed(2) : bytesReadTotal;
+                    event.sender.send('disk-image-progress', { progress, bytesReadTotal, totalSize });
+
+                    readWriteLoop();
+                });
+            });
+        };
+
+        try {
+            fdIn = fs.openSync(drivePath, 'r');
+            fdOut = fs.openSync(outputPath, 'w');
+            readWriteLoop();
+        } catch (err) {
+            reject(`Failed to open drive: ${err.message}. You may need to run as Administrator.`);
+        }
+    });
+});
+
+ipcMain.handle('select-save-path', async (event, options) => {
+    const result = await dialog.showSaveDialog(options);
+    return result.filePath;
 });
 
 ipcMain.handle('select-file', async (event) => {

@@ -5,7 +5,7 @@
   "main": "main.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/glebmorozov/mov-recover"
+    "url": "https://github.com/glebmorozov112005-creator/mov-recover"
   },
   "author": "Antigravity",
   "license": "MIT",
@@ -22,6 +22,7 @@
   "dependencies": {
     "axios": "^1.13.2",
     "cors": "^2.8.5",
+    "drivelist": "^12.0.2",
     "electron-updater": "^6.6.2",
     "express": "^4.21.2",
     "ffmpeg-static": "^5.3.0",
@@ -30,7 +31,8 @@
     "lucide-react": "^0.469.0",
     "multer": "^1.4.5-lts.1",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "sudo-prompt": "^9.2.1"
   },
   "devDependencies": {
     "@types/react": "^18.3.18",
@@ -53,7 +55,7 @@
     },
     "publish": {
       "provider": "github",
-      "owner": "glebmorozov",
+      "owner": "glebmorozov112005-creator",
       "repo": "mov-recover"
     },
     "nsis": {
