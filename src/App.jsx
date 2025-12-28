@@ -140,108 +140,164 @@ const App = () => {
   };
 
   return (
-    <div className="container">
+    <div className="container relative z-10">
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
         className="glass-card"
       >
-        <h1 className="title">MOV Recovery Desktop</h1>
-        <p className="subtitle">Restore your corrupted video files or create disk images locally.</p>
+        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 opacity-50" />
 
-        <div className="flex gap-4 mb-4 border-b border-white/10 pb-2">
+        <h1 className="title">MOV Recover</h1>
+        <p className="subtitle">Professional-grade local video repair & forensic disk imaging.</p>
+
+        {/* Custom Tabs */}
+        <div className="tabs-container">
           <button
             onClick={() => { setStatus('idle'); setActiveTab('repair'); }}
-            className={`pb-2 px-4 transition-all ${activeTab === 'repair' ? 'text-blue-400 border-b-2 border-blue-400 font-bold' : 'opacity-50 hover:opacity-100'}`}
+            className={`tab-btn ${activeTab === 'repair' ? 'active' : ''}`}
           >
             Video Repair
           </button>
           <button
             onClick={() => { setStatus('idle'); setActiveTab('disk'); }}
-            className={`pb-2 px-4 transition-all ${activeTab === 'disk' ? 'text-blue-400 border-b-2 border-blue-400 font-bold' : 'opacity-50 hover:opacity-100'}`}
+            className={`tab-btn ${activeTab === 'disk' ? 'active' : ''}`}
           >
             Disk Imaging
           </button>
+
+          <motion.div
+            className="tab-indicator"
+            layoutId="activeTab"
+            initial={false}
+            animate={{
+              left: activeTab === 'repair' ? '6px' : 'calc(50% + 3px)',
+              width: 'calc(50% - 9px)'
+            }}
+          />
         </div>
 
-        {activeTab === 'repair' ? (
-          <div className="upload-grid">
-            <div
-              className={`upload-box ${brokenPath ? 'active' : ''}`}
-              onClick={() => handleSelectFile('broken')}
+        <AnimatePresence mode="wait">
+          {activeTab === 'repair' ? (
+            <motion.div
+              key="repair-tab"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.3 }}
+              className="upload-grid"
             >
-              <Upload className="icon" />
-              <h3>Corrupted File</h3>
-              <p className="file-info">{brokenPath ? brokenPath.split(/[\\/]/).pop() : 'Click to select broken .mov'}</p>
-            </div>
+              <div
+                className={`upload-box ${brokenPath ? 'active' : ''}`}
+                onClick={() => handleSelectFile('broken')}
+              >
+                <div className="icon-wrapper">
+                  <FileVideo className="w-8 h-8 text-blue-400" />
+                </div>
+                <div>
+                  <h3>Corrupted File</h3>
+                  <p className="file-info font-mono text-xs opacity-70">
+                    {brokenPath ? brokenPath.split(/[\\/]/).pop() : 'Click to browse .mov/.mp4'}
+                  </p>
+                </div>
+              </div>
 
-            <div
-              className={`upload-box ${referencePath ? 'active' : ''}`}
-              onClick={() => handleSelectFile('reference')}
+              <div
+                className={`upload-box ${referencePath ? 'active' : ''}`}
+                onClick={() => handleSelectFile('reference')}
+              >
+                <div className="icon-wrapper">
+                  <CheckCircle className="w-8 h-8 text-purple-400" />
+                </div>
+                <div>
+                  <h3>Reference File</h3>
+                  <p className="file-info font-mono text-xs opacity-70">
+                    {referencePath ? referencePath.split(/[\\/]/).pop() : 'Select healthy file from same cam'}
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="disk-tab"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-4 mb-8"
             >
-              <FileVideo className="icon" />
-              <h3>Reference File</h3>
-              <p className="file-info">{referencePath ? referencePath.split(/[\\/]/).pop() : 'Select a healthy .mov'}</p>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-4 mb-8">
-            <p className="text-xs text-dim text-center">Select a physical drive to create a raw bit-by-bit recovery image.</p>
-            <div className="grid gap-2 max-h-[200px] overflow-auto pr-2">
-              {drives.length === 0 ? (
-                <p className="text-center text-dim py-4 italic text-sm">No external drives found</p>
-              ) : (
-                drives.map((drive, idx) => (
-                  <div
-                    key={idx}
-                    onClick={() => setSelectedDrive(drive)}
-                    className={`p-3 rounded-lg border transition-all cursor-pointer flex items-center justify-between
-                      ${selectedDrive?.device === drive.device ? 'bg-blue-500/20 border-blue-500' : 'bg-white/5 border-white/10 hover:border-white/20'}`}
-                  >
-                    <div className="flex items-center gap-3 overflow-hidden">
-                      <HardDrive size={18} className={selectedDrive?.device === drive.device ? 'text-blue-400' : 'text-dim'} />
-                      <div className="overflow-hidden">
-                        <p className="text-xs font-medium truncate">{drive.description || drive.model}</p>
-                        <p className="text-[10px] text-dim">{drive.device} • {(drive.size / 1024 / 1024 / 1024).toFixed(2)} GB</p>
-                      </div>
-                    </div>
-                    {selectedDrive?.device === drive.device && <Check size={14} className="text-blue-400" />}
+              <div className="drive-list custom-scrollbar">
+                {drives.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Loader2 className="animate-spin w-8 h-8 mx-auto mb-3 text-dim" />
+                    <p className="text-dim">Scanning for drives...</p>
                   </div>
-                ))
-              )}
-            </div>
-            <button
-              onClick={loadDrives}
-              className="text-[10px] text-blue-400 hover:text-blue-300 transition-all block mx-auto underline"
-            >
-              Refresh Drives
-            </button>
-          </div>
-        )}
+                ) : (
+                  drives.map((drive, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => setSelectedDrive(drive)}
+                      className={`drive-item ${selectedDrive?.device === drive.device ? 'selected' : ''}`}
+                    >
+                      <HardDrive size={24} className={`mr-4 ${selectedDrive?.device === drive.device ? 'text-blue-400' : 'text-dim'}`} />
+                      <div className="flex-1">
+                        <p className="font-medium text-white">{drive.description || drive.model}</p>
+                        <p className="text-xs text-dim font-mono mt-1">{drive.device} • <span className="text-blue-300">{(drive.size / 1024 / 1024 / 1024).toFixed(2)} GB</span></p>
+                      </div>
+                      {selectedDrive?.device === drive.device && <div className="w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]" />}
+                    </div>
+                  ))
+                )}
+              </div>
+              <button
+                onClick={loadDrives}
+                className="text-xs text-dim hover:text-white transition-colors block mx-auto flex items-center gap-1"
+              >
+                <Loader2 size={12} /> Refresh List
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <AnimatePresence mode="wait">
           {status === 'idle' && (
-            <div className="flex gap-2">
-              <button
-                onClick={handleCreateDiskImage}
-                disabled={!selectedDrive || status === 'processing'}
-                className={`flex-1 py-4 rounded-xl flex items-center justify-center gap-2 font-bold text-sm transition-all
-                    ${!selectedDrive ? 'bg-white/5 text-dim cursor-not-allowed' : 'btn-primary shadow-lg shadow-blue-500/25'}`}
-              >
-                <Save size={20} />
-                {status === 'processing' && !isScanning ? 'Imaging...' : 'Create Image'}
-              </button>
-
-              <button
-                onClick={handleDeepScan}
-                disabled={!selectedDrive || status === 'processing'}
-                className={`flex-1 py-4 rounded-xl flex items-center justify-center gap-2 font-bold text-sm transition-all
-                    ${!selectedDrive ? 'bg-white/5 text-dim cursor-not-allowed' : 'bg-purple-500 hover:bg-purple-400 text-white shadow-lg shadow-purple-500/25'}`}
-              >
-                <HardDrive size={20} />
-                {isScanning ? 'Scanning...' : 'Deep Scan'}
-              </button>
-            </div>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex gap-4 mt-8"
+            >
+              {activeTab === 'repair' ? (
+                <button
+                  onClick={handleRepair}
+                  disabled={!brokenPath || !referencePath}
+                  className="btn-primary"
+                >
+                  <span className="relative z-10 flex items-center justify-center gap-2">
+                    <Cpu size={20} /> Start Repair Analysis
+                  </span>
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={handleCreateDiskImage}
+                    disabled={!selectedDrive}
+                    className="btn-secondary flex-1 flex items-center justify-center gap-2"
+                  >
+                    <Save size={18} /> Create Image
+                  </button>
+                  <button
+                    onClick={handleDeepScan}
+                    disabled={!selectedDrive}
+                    className="btn-primary flex-1"
+                  >
+                    <span className="relative z-10 flex items-center justify-center gap-2">
+                      <HardDrive size={18} /> Deep Scan
+                    </span>
+                  </button>
+                </>
+              )}
+            </motion.div>
           )}
 
           {status === 'processing' && (
@@ -251,19 +307,22 @@ const App = () => {
               animate={{ opacity: 1 }}
               className="progress-container"
             >
-              <div className="progress-bar">
+              <div className="flex justify-between text-xs text-dim mb-2 uppercase tracking-wider font-semibold">
+                <span>Processing</span>
+                <span>{activeTab === 'disk' && isScanning ? scanStats.filesFound : ''} {isScanning ? 'Files Found' : `${Math.round(imagingProgress)}%`}</span>
+              </div>
+              <div className="progress-track">
                 <motion.div
+                  className="progress-fill"
                   initial={{ width: 0 }}
                   animate={{ width: `${activeTab === 'repair' ? '100%' : imagingProgress + '%'}` }}
                   transition={activeTab === 'repair' ? { duration: 15, ease: "linear" } : { duration: 0.5 }}
-                  className="progress-fill"
                 />
               </div>
-              <p className="status">
-                <Loader2 className="animate-spin inline mr-2" />
+              <p className="status text-sm text-dim animate-pulse">
                 {activeTab === 'repair'
-                  ? 'Repairing video with FFmpeg...'
-                  : (isScanning ? `Scanning Disk... Found: ${scanStats.found} files` : `Imaging Disk: ${imagingProgress}%`)
+                  ? 'Analyzing atoms & reconstructing indices...'
+                  : (isScanning ? `Carving sectors for MOV signatures...` : `Cloning sector-by-sector...`)
                 }
               </p>
             </motion.div>
@@ -274,24 +333,25 @@ const App = () => {
               key="success"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="download-section"
+              className="download-section mt-8 bg-green-500/10 border border-green-500/20 rounded-2xl p-6"
             >
-              <div className="flex items-center justify-center gap-2 text-green-400 mb-4">
-                <CheckCircle />
-                <span>Recovery Complete!</span>
+              <div className="flex flex-col items-center gap-2 text-green-400 mb-6">
+                <CheckCircle size={48} className="drop-shadow-[0_0_15px_rgba(74,222,128,0.5)]" />
+                <span className="text-xl font-bold text-white">Operation Successful</span>
               </div>
               <button
                 onClick={handleDownload}
-                className="btn-download"
+                className="btn-primary bg-gradient-to-r from-emerald-500 to-green-600"
               >
-                <Download />
-                Save Repaired File
+                <span className="relative z-10 flex items-center justify-center gap-2">
+                  <Download /> Save Recovered Data
+                </span>
               </button>
               <button
                 onClick={() => setStatus('idle')}
-                className="mt-4 block w-full text-dim hover:text-white"
+                className="mt-4 text-sm text-dim hover:text-white transition-colors"
               >
-                Fix another file
+                Start New Session
               </button>
             </motion.div>
           )}
@@ -299,20 +359,20 @@ const App = () => {
           {status === 'error' && (
             <motion.div
               key="error"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center mt-4"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-8 bg-red-500/10 border border-red-500/20 rounded-2xl p-6"
             >
-              <div className="flex items-center justify-center gap-2 text-red-400 mb-2">
-                <AlertCircle />
-                <span>Error: Repair Failed</span>
+              <div className="flex items-center gap-3 text-red-400 mb-4">
+                <AlertCircle size={24} />
+                <span className="font-bold text-lg">Process Failed</span>
               </div>
-              <div className="bg-red-900/20 border border-red-900/50 rounded p-3 mb-4 max-h-32 overflow-auto">
-                <p className="text-xs text-red-300 font-mono text-left break-all">{errorMessage}</p>
+              <div className="bg-black/30 rounded-lg p-4 font-mono text-xs text-red-200 mb-6 max-h-32 overflow-auto custom-scrollbar">
+                {errorMessage}
               </div>
               <button
                 onClick={() => setStatus('idle')}
-                className="btn-primary"
+                className="btn-secondary w-full"
               >
                 Try Again
               </button>
