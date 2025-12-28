@@ -1,6 +1,6 @@
+import React, { useState, useEffect } from 'react';
 import { Upload, FileVideo, CheckCircle, AlertCircle, Loader2, Download, HardDrive, Cpu, Video, Save, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useEffect } from 'react';
 
 const App = () => {
   const [brokenPath, setBrokenPath] = useState('');
@@ -14,6 +14,8 @@ const App = () => {
   const [drives, setDrives] = useState([]);
   const [selectedDrive, setSelectedDrive] = useState(null);
   const [imagingProgress, setImagingProgress] = useState(0);
+  const [scanStats, setScanStats] = useState({ found: 0, progress: 0 });
+  const [isScanning, setIsScanning] = useState(false);
 
   useEffect(() => {
     if (activeTab === 'disk') {
@@ -21,11 +23,20 @@ const App = () => {
     }
 
     // Listen for disk imaging progress
-    const removeListener = window.electronAPI.onDiskImageProgress((data) => {
+    const removeImageListener = window.electronAPI.onDiskImageProgress((data) => {
       setImagingProgress(data.progress);
     });
 
-    return () => removeListener && removeListener();
+    // Listen for deep scan progress
+    const removeScanListener = window.electronAPI.onDeepScanProgress((data) => {
+      setScanStats({ found: data.filesFound, progress: data.progress });
+      setImagingProgress(data.progress); // Reuse the progress bar
+    });
+
+    return () => {
+      removeImageListener && removeImageListener();
+      removeScanListener && removeScanListener();
+    };
   }, [activeTab]);
 
   const loadDrives = async () => {
@@ -62,6 +73,32 @@ const App = () => {
       setErrorMessage(err || 'Failed to create disk image.');
       setStatus('error');
     }
+  };
+
+  const handleDeepScan = async () => {
+    if (!selectedDrive) return;
+
+    // Select output directory
+    const outputDir = await window.electronAPI.selectSavePath({
+      title: 'Select Recovery Folder',
+      properties: ['openDirectory', 'createDirectory']
+    });
+
+    setStatus('processing');
+    setIsScanning(true);
+    setScanStats({ found: 0, progress: 0 });
+
+    try {
+      await window.electronAPI.deepScan({
+        drivePath: selectedDrive.device,
+        outputDir: outputDir || 'C:\\RecoveredData' // Use selected path or fallback
+      });
+      setStatus('success');
+    } catch (err) {
+      setErrorMessage(err || 'Scan failed');
+      setStatus('error');
+    }
+    setIsScanning(false);
   };
 
   const handleSelectFile = async (type) => {
@@ -184,17 +221,27 @@ const App = () => {
 
         <AnimatePresence mode="wait">
           {status === 'idle' && (
-            <motion.button
-              key="btn"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="btn-primary"
-              onClick={activeTab === 'repair' ? handleRepair : handleCreateDiskImage}
-              disabled={activeTab === 'repair' ? (!brokenPath || !referencePath) : !selectedDrive}
-            >
-              {activeTab === 'repair' ? 'Start Local Recovery' : 'Create Disk Image'}
-            </motion.button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleCreateDiskImage}
+                disabled={!selectedDrive || status === 'processing'}
+                className={`flex-1 py-4 rounded-xl flex items-center justify-center gap-2 font-bold text-sm transition-all
+                    ${!selectedDrive ? 'bg-white/5 text-dim cursor-not-allowed' : 'btn-primary shadow-lg shadow-blue-500/25'}`}
+              >
+                <Save size={20} />
+                {status === 'processing' && !isScanning ? 'Imaging...' : 'Create Image'}
+              </button>
+
+              <button
+                onClick={handleDeepScan}
+                disabled={!selectedDrive || status === 'processing'}
+                className={`flex-1 py-4 rounded-xl flex items-center justify-center gap-2 font-bold text-sm transition-all
+                    ${!selectedDrive ? 'bg-white/5 text-dim cursor-not-allowed' : 'bg-purple-500 hover:bg-purple-400 text-white shadow-lg shadow-purple-500/25'}`}
+              >
+                <HardDrive size={20} />
+                {isScanning ? 'Scanning...' : 'Deep Scan'}
+              </button>
+            </div>
           )}
 
           {status === 'processing' && (
@@ -214,7 +261,10 @@ const App = () => {
               </div>
               <p className="status">
                 <Loader2 className="animate-spin inline mr-2" />
-                {activeTab === 'repair' ? 'Repairing video with FFmpeg...' : `Imaging Disk: ${imagingProgress}%`}
+                {activeTab === 'repair'
+                  ? 'Repairing video with FFmpeg...'
+                  : (isScanning ? `Scanning Disk... Found: ${scanStats.found} files` : `Imaging Disk: ${imagingProgress}%`)
+                }
               </p>
             </motion.div>
           )}
